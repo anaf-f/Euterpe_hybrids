@@ -1,6 +1,6 @@
 ## written by Olivier Broennimann. Departement of Ecology and Evolution (DEE). 
 ## 16.01.2019. University of Lausanne. Department of ecology and evolution, Switzerland
-## adaptado por Ana F. Francisconi - University of Campinas - Brazil
+## adapted by Ana F. Francisconi - University of Campinas - Brazil
 
 t1=Sys.time()
 
