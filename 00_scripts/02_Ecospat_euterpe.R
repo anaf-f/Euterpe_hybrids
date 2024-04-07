@@ -8,17 +8,18 @@ t1=Sys.time()
 #library(devtools)
 #install_github(repo="ecospat/ecospat/ecospat",ref="3.1")
 library(ecospat)
-
+library(geodata)
 library(ade4)
 library(raster)
 library(rworldmap)
 library(knitr)
-library("heatmaply")
+library(heatmaply)
+
 ###########################
 #### data preparation #####
 ###########################
 
-clim<-getData('worldclim', var='bio', res=10)
+clim <- dir(path = "01_data/02_variables/01_climate/", )
 
 # choice of variables
 var<-c("bio1","bio2","bio3","bio4","bio5","bio6","bio7",

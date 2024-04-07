@@ -53,10 +53,12 @@ occ_data_sibbr <- purrr::map_dfr(occ_data_sibbr_plants_files, readr::read_delim,
     dplyr::mutate(species = scientificName,
                   longitude = as.numeric(decimalLongitude),
                   latitude = as.numeric(decimalLatitude),
-                  source = "sibbr",
-                  year = as.numeric(year)) %>% 
+                  locality = locality, 
+                  year = as.numeric(year),
+                  collector = rightsHolder,
+                  source = "sibbr") %>% 
     tidyr::drop_na(longitude, latitude) %>% 
-    dplyr::select(species, longitude, latitude, source, year) %>% 
+    dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
     dplyr::filter(species %in% species_list) %>% 
     dplyr::filter(longitude > -180, 
                   longitude < 180,
@@ -72,10 +74,12 @@ readr::write_csv(occ_data_sibbr, "01_data/01_occurrences/00_raw/occ_raw_sibbr.cs
 fru_flora_occ <- readr::read_csv("01_data/01_occurrences/00_raw/data_paper/ATLANTIC_frugivory.csv") %>% 
     janitor::clean_names() %>% 
     dplyr::mutate(species = plant_species,
-                  year = NA,
+                  locality = study_location,
+                  year = as.numeric(stringr::str_extract_all(study_reference, "[0-9]+", simplify = TRUE)),
+                  collector = plant_origin,
                   source = "atlantic_frugivory") %>%
     dplyr::mutate(species = str_trim(species)) %>% 
-    dplyr::select(species, longitude, latitude, year, source) %>% 
+    dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
     dplyr::filter(species %in% species_list) %>% 
     tidyr::drop_na(longitude, latitude)
 fru_flora_occ
@@ -86,10 +90,12 @@ flo_inv_occ_flora <- readr::read_csv("01_data/01_occurrences/00_raw/data_paper/A
     dplyr::mutate(species = plant_species,
                   longitude = longitude_x, 
                   latitude = latitude_y,
+                  locality = regional_name_of_sampled_area,
                   year = campain_year_finish,
+                  collector = plant_identification_responsability,
                   source = "atlantic_flower_invertebrate") %>%
     dplyr::mutate(species = str_trim(species)) %>% 
-    dplyr::select(species, longitude, latitude, year, source) %>% 
+    dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
     dplyr::filter(species %in% species_list) %>% 
     tidyr::drop_na(longitude, latitude)
 flo_inv_occ_flora
@@ -104,7 +110,11 @@ list_files_portalbio <- dir(path = "01_data/01_occurrences/00_raw/portal_biodive
     stringr::str_subset(pattern = "portalbio_export")
 list_files_portalbio
 
-occ_portalbio <- readr::read_csv("01_data/01_occurrences/00_raw/portal_biodiversidade/portalbio_one_species.csv")
+occ_portalbio <- readr::read_csv("01_data/01_occurrences/00_raw/portal_biodiversidade/portalbio_one_species.csv") %>% 
+    dplyr::mutate(locality = NA, 
+                  collector = NA) %>% 
+    dplyr::select(species, longitude, latitude, year, locality, collector, source) 
+
 for(i in list_files_portalbio){
     
     occ_portalbio_i <- readr::read_delim(i, delim = ";", col_types = cols()) %>% 
@@ -113,8 +123,10 @@ for(i in list_files_portalbio){
                       longitude = as.numeric(longitude),
                       latitude = as.numeric(latitude),
                       year = lubridate::year(lubridate::dmy(data_do_registro)),
+                      locality = localidade,
+                      collector = sigla_da_instituicao,
                       source = "portalbio") %>% 
-        dplyr::select(species, longitude, latitude, year, source)
+        dplyr::select(species, longitude, latitude, year, locality, collector, source) 
     occ_portalbio <- dplyr::bind_rows(occ_portalbio, occ_portalbio_i)
     
 }
@@ -153,57 +165,69 @@ for(i in species_list){
         occ_splink_data <- tibble::tibble(species = i,
                                           longitude = NA,
                                           latitude = NA,
-                                          source = "specieslink",
-                                          year = NA)
-        
-        
+                                          year = NA,
+                                          locality = NA, 
+                                          collector = NA,
+                                          source = "specieslink")
         
         # conditional with data and year and key
     } else if("yearcollected" %in% colnames(occ_splink) & "catalognumber" %in% colnames(occ_splink)) {
+        
         occ_splink_data <- occ_splink %>% 
             tidyr::drop_na(decimallongitude, decimallatitude) %>% 
-            dplyr::mutate(species = i,
+            dplyr::mutate(species = scientificname,
                           longitude = as.numeric(decimallongitude),
                           latitude = as.numeric(decimallatitude),
-                          source = "specieslink",
-                          year = as.numeric(yearcollected)) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
-        
+                          year = as.numeric(yearcollected),
+                          locality = locality, 
+                          collector = occurrenceremarks,
+                          source = "specieslink") %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
         # conditional with data and year and not key
     } else if("yearcollected" %in% colnames(occ_splink) & !"catalognumber" %in% colnames(occ_splink)) {
+        
         occ_splink_data <- occ_splink %>% 
             tidyr::drop_na(decimallongitude, decimallatitude) %>% 
-            dplyr::mutate(species = i,
+            dplyr::mutate(species = scientificname,
                           longitude = as.numeric(decimallongitude),
                           latitude = as.numeric(decimallatitude),
-                          source = "specieslink",
-                          year = as.numeric(yearcollected)) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          year = as.numeric(yearcollected),
+                          locality = locality, 
+                          collector = occurrenceremarks,
+                          source = "specieslink") %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
         
         # conditional with data and not year and key
     } else if(!"yearcollected" %in% colnames(occ_splink) & "catalognumber" %in% colnames(occ_splink)) {
         occ_splink_data <- occ_splink %>% 
             tidyr::drop_na(decimallongitude, decimallatitude) %>% 
-            dplyr::mutate(species = i,
+            dplyr::mutate(species = scientificname,
                           longitude = as.numeric(decimallongitude),
                           latitude = as.numeric(decimallatitude),
-                          source = "specieslink",
-                          year = NA) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
-        
+                          year = NA,
+                          locality = locality, 
+                          collector = occurrenceremarks,
+                          source = "specieslink") %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
         # conditional with data and not year and not key
     } else if(!"yearcollected" %in% colnames(occ_splink) & !"catalognumber" %in% colnames(occ_splink)) {
         occ_splink_data <- occ_splink %>% 
             tidyr::drop_na(decimallongitude, decimallatitude) %>% 
-            dplyr::mutate(species = i,
+            dplyr::mutate(species = scientificname,
                           longitude = as.numeric(decimallongitude),
                           latitude = as.numeric(decimallatitude),
-                          source = "specieslink",
-                          year = NA) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          year = NA,
+                          locality = locality, 
+                          collector = occurrenceremarks,
+                          source = "specieslink") %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
     }
     
     
@@ -213,13 +237,13 @@ for(i in species_list){
     
     # download
     occ_spocc <- spocc::occ(query = i, 
-                            from = c("gbif", "vertnet", "idigbio", "ecoengine"),
+                            from = c("gbif", "idigbio"),
                             has_coords = TRUE,
                             limit = 1e6,
                             throw_warnings = FALSE)
     
     # data
-    occ_spocc_data <- spocc::occ2df(occ_spocc)
+    occ_spocc_data <- occ_spocc$gbif$data[[1]]
     
     # conditional without data
     if(nrow(occ_spocc_data) == 0){
@@ -227,30 +251,40 @@ for(i in species_list){
         occ_spocc_data <- tibble::tibble(species = i,
                                          longitude = NA,
                                          latitude = NA,
-                                         source = "spocc",
-                                         year = NA)
+                                         year = NA,
+                                         locality = NA,
+                                         collector = NA,
+                                         source = "spocc")
         
-    # conditional without year  
+        # conditional without year  
     } else if(!"date" %in% colnames(occ_spocc_data)){
         
-        occ_spocc_data <- occ_spocc_data %>% 
-            dplyr::mutate(species = i, .before = 1) %>% 
-            dplyr::mutate(longitude = as.numeric(longitude),
+        occ_spocc_data <- occ_spocc_data %>%
+            dplyr::mutate(species = paste0(stringr::str_split(scientificName, pattern = " ", simplify = TRUE)[, 1], " ",
+                                           stringr::str_split(scientificName, pattern = " ", simplify = TRUE)[, 2]), 
+                          longitude = as.numeric(longitude),
                           latitude = as.numeric(latitude),
                           year = NA,
-                          source = "spocc") %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          locality = locality,
+                          collector = recordedBy,
+                          source = paste0("spocc_", prov)) %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
-    # conditional with data and year
+        # conditional with data and year
     } else{
         
         occ_spocc_data <- occ_spocc_data %>% 
-            dplyr::mutate(species = i, .before = 1) %>% 
-            dplyr::mutate(longitude = as.numeric(longitude),
+            dplyr::mutate(species = paste0(stringr::str_split(scientificName, pattern = " ", simplify = TRUE)[, 1], " ",
+                                           stringr::str_split(scientificName, pattern = " ", simplify = TRUE)[, 2]), 
+                          longitude = as.numeric(longitude),
                           latitude = as.numeric(latitude),
-                          year = lubridate::year(occ_spocc_data$date),
-                          source = prov) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          year = lubridate::year(date),
+                          locality = locality,
+                          collector = recordedBy,
+                          source = paste0("spocc_", prov)) %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
     }
     
@@ -265,30 +299,38 @@ for(i in species_list){
         occ_bien_data <- tibble::tibble(species = i,
                                         longitude = NA,
                                         latitude = NA,
-                                        source = "bien",
-                                        year = NA)
+                                        year = NA,
+                                        locality = NA, 
+                                        collector = NA,
+                                        source = "bien")
         
         # conditional without year  
     } else if(!"date_collected" %in% colnames(occ_bien_data)){
         
         occ_bien_data <- occ_bien_data %>% 
-            dplyr::mutate(species = i, .before = 1) %>% 
-            dplyr::mutate(longitude = as.numeric(longitude),
+            dplyr::mutate(species = scrubbed_species_binomial, 
+                          longitude = as.numeric(longitude),
                           latitude = as.numeric(latitude),
-                          source = paste0("bien_", datasource),
-                          year = NA) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          year = NA,
+                          locality = NA, 
+                          collector = dataset,
+                          source = paste0("bien_", datasource)) %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
         # conditional with data and year
     } else{
         
         occ_bien_data <- occ_bien_data %>% 
-            dplyr::mutate(species = i, .before = 1) %>% 
+            dplyr::mutate(species = scrubbed_species_binomial, .before = 1) %>% 
             dplyr::mutate(longitude = as.numeric(longitude),
                           latitude = as.numeric(latitude),
-                          source = paste0("bien_", datasource),
-                          year = lubridate::year(occ_bien_data$date_collected)) %>% 
-            dplyr::select(species, longitude, latitude, source, year)
+                          year = lubridate::year(occ_bien_data$date_collected),
+                          locality = NA, 
+                          collector = dataset,
+                          source = paste0("bien_", datasource)) %>% 
+            dplyr::select(species, longitude, latitude, year, locality, collector, source) %>% 
+            dplyr::filter(species == i)
         
     }
     
@@ -304,7 +346,7 @@ for(i in species_list){
 # import
 occ_data_specieslink_spocc_bien <- dir(path = "01_data/01_occurrences/00_raw/splink_spocc_bien/", 
                                        pattern = ".csv", full.names = TRUE) %>% 
-    purrr::map_dfr(readr::read_csv, col_types = "cddcd")
+    purrr::map_dfr(readr::read_csv, col_types = "cddccc")
 occ_data_specieslink_spocc_bien
 
 # export
@@ -334,6 +376,12 @@ occ_data_papers
 ## portal biodiversidade ----
 occ_portalbio <- readr::read_csv("01_data/01_occurrences/00_raw/occ_raw_portalbio.csv")
 occ_portalbio
+
+# verify
+count(occ_specieslink_spocc_bien, source)
+count(occ_portalbio, source)
+count(occ_sibbr, source)
+count(occ_data_papers, source)
 
 ## combine ----
 occ_combined <- dplyr::bind_rows(occ_specieslink_spocc_bien, occ_data_papers,
@@ -522,6 +570,9 @@ occ_euterpe_filter_date_precision_neotropic_spatial_bias %>%
     dplyr::select(-c(.val:.summary)) %>% 
     readr::write_csv("01_data/01_occurrences/02_cleaned/occ_euterpe_cleaned_raw.csv")
 
-readr::write_csv(occ_euterpe_cleaned, "01_data/01_occurrences/02_cleaned/occ_euterpe_cleaned.csv")
+occ_euterpe_cleaned %>% 
+    sf::st_drop_geometry() %>% 
+    dplyr::select(1:8) %>% 
+    writexl::write_xlsx("01_data/01_occurrences/02_cleaned/occ_euterpe_cleaned.xlsx")
 
 # end ---------------------------------------------------------------------
