@@ -12,7 +12,7 @@ ENMTML(pred_dir ='C:/Users/anaf_/Desktop/Modelagem/Euterpe/var_cortadas',
        
        thin_occ=c(method='CELLSIZE'), # definir o metodo de rarefacao dos dados
        colin_var = c(method='PCA'), # metodo de controle de colinearidade das variaveis, os resultados ficam na pasta das variaveis
-       imp_var = FALSE, # calculo de importancia de variavel e curvas de resposta
+       imp_var = TRUE, # calculo de importancia de variavel e curvas de resposta
        eval_occ = NULL, #colocar caminho de ocorrencia para especie invasivas
        sp_accessible_area = c(method='MASK', filepath='C:/Users/anaf_/Desktop/Modelagem/Euterpe/mascara/Lowenberg_Neto_2014.shp'), # area acessivas
        pres_abs_ratio = 1, # quantidade de pseudo-ausencia para cada presenca comprovada
